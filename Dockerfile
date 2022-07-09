@@ -1,4 +1,5 @@
 FROM golang:alpine AS builder
+ENV GOPROXY=https://goproxy.cn
 
 WORKDIR /app
 
