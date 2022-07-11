@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 )
@@ -37,10 +39,18 @@ func main() {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
 	global := Global{}
+	globalValue := atomic.Value{}
 	ToOtherInterfaceValue(&global, viper.GetStringMap("global"))
+	globalValue.Store(global)
+
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		ToOtherInterfaceValue(&global, viper.GetStringMap("global"))
+		globalValue.Store(global)
+	})
+	viper.WatchConfig()
 
 	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, global)
+		c.JSON(http.StatusOK, globalValue.Load().(Global))
 	})
 
 	r.Run()
